@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Text;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 
 namespace Consumer
 {
@@ -6,7 +9,30 @@ namespace Consumer
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            var factory = new ConnectionFactory() { HostName = "localhost" };
+            using (var connection = factory.CreateConnection())
+            {
+                using (var channel = connection.CreateModel())
+                {
+                    channel.QueueDeclare("BasicTest", false, false, false, null);
+
+                    var consumer = new EventingBasicConsumer(channel);
+
+                    // Get the message
+                    consumer.Received += (model, ea) => 
+                    {
+                        var body = ea.Body;
+                        var message = Encoding.UTF8.GetString(body);
+                        Console.WriteLine($"Received message: {message}...");
+                    };
+
+                    // Acknowledge message received
+                    channel.BasicConsume("BasicTest", true, consumer);
+
+                    Console.WriteLine("Press [enter] to exit the Consumer...");
+                    Console.ReadLine();
+                }
+            }
         }
     }
 }
